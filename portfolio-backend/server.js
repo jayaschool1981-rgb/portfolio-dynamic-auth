@@ -1,4 +1,3 @@
-// server.js
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
@@ -22,14 +21,21 @@ app.use(
   })
 );
 
+/* ===============================
+   🩺 HEALTH CHECK ROUTE
+================================= */
+app.get("/api/health", (req, res) => {
+  res.send("✅ Backend is live and connected to Render + MongoDB!");
+});
 
-// ✅ MongoDB Connection
+/* ===============================
+   🧩 MONGO CONNECTION
+================================= */
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB connected successfully"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// ✅ JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 
 /* ===============================
@@ -40,7 +46,6 @@ app.post("/api/register", async (req, res) => {
   try {
     console.log("📩 Register request:", username);
 
-    // check existing user
     const existingUser = await User.findOne({ username });
     if (existingUser) {
       return res
@@ -48,7 +53,6 @@ app.post("/api/register", async (req, res) => {
         .json({ success: false, message: "User already exists" });
     }
 
-    // hash password
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
