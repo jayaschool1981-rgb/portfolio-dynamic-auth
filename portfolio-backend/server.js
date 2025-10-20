@@ -11,7 +11,17 @@ dotenv.config();
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173", // ✅ Local dev
+      "https://portfolio-dynamic-auth-qimahzwqm-jayaschool1981-rgbs-projects.vercel.app", // ✅ Your Vercel domain
+    ],
+    methods: ["GET", "POST"],
+    credentials: true,
+  })
+);
+
 
 // ✅ MongoDB Connection
 mongoose
