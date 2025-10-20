@@ -1,0 +1,39 @@
+/* ===== Fonts ===== */
+@import "@fontsource/poppins";
+
+/* ===== Tailwind Core ===== */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== Custom Styles ===== */
+html, body {
+  height: 100%;
+  background: radial-gradient(circle at 20% 20%, #0E0E10 0%, #09090b 100%);
+  color: #fff;
+  font-family: 'Poppins', system-ui, sans-serif;
+  scroll-behavior: smooth;
+}
+
+/* ===== Glass Effect ===== */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  border-radius: 1rem;
+}
+
+/* ===== Neon Text Animation ===== */
+.neon-text {
+  background: linear-gradient(90deg, #00FFF0, #A855F7, #00FFF0);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShift 6s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
