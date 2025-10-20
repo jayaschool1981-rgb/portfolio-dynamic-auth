@@ -3,6 +3,10 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../auth/AuthProvider";
 
+// ✅ Automatically detect environment
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "https://portfolio-dynamic-auth.onrender.com";
+
 export default function Login() {
   const [formData, setFormData] = useState({ username: "", password: "" });
   const [message, setMessage] = useState("");
@@ -21,10 +25,13 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:3000/api/login", formData);
+      // ✅ Use dynamic backend URL
+      const res = await axios.post(`${API_BASE_URL}/api/login`, formData);
 
       if (res.data.success) {
         setMessage("✅ Login successful! Redirecting...");
+
+        // ✅ Save user in global context
         login({
           username: res.data.username,
           token: res.data.token,
