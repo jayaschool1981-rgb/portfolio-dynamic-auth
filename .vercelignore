@@ -1,0 +1,4 @@
+portfolio-backend/
+node_modules/
+.git/
+.env
