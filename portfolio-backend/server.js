@@ -14,7 +14,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173", // ✅ Local dev
-      "https://portfolio-dynamic-auth-qimahzwqm-jayaschool1981-rgbs-projects.vercel.app", // ✅ Your Vercel domain
+      "https://portfolio-dynamic-auth.vercel.app" // deployed frontend
     ],
     methods: ["GET", "POST"],
     credentials: true,
