@@ -3,7 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../auth/AuthProvider";
 
-// ✅ API base URL (local + deployed)
+// ✅ API BASE URL
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE || "http://localhost:3000/api";
 
@@ -43,6 +43,8 @@ export default function Login() {
     setLoading(true);
 
     try {
+      console.log("🔥 Sending login request...");
+
       const res = await axios.post(
         `${API_BASE_URL}/login`,
         formData,
@@ -51,21 +53,27 @@ export default function Login() {
         }
       );
 
+      console.log("✅ RESPONSE:", res.data);
+
       const { token, user } = res.data;
 
-      // ✅ SAFETY CHECK (VERY IMPORTANT)
-      if (!user) {
-        throw new Error("User data missing from server");
+      // ✅ VALIDATION
+      if (!token || !user) {
+        throw new Error("Invalid response from server");
       }
 
+      // ✅ FIXED LOGIN CALL
       login({
-        username: user.name || "User", // fallback safety
-        token: token,
+        token,
+        user,
       });
 
       setMessage("✅ Login successful!");
 
-      navigate("/dashboard");
+      // ✅ REDIRECT
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 500);
 
     } catch (err) {
       console.error("❌ Login error:", err);
@@ -83,7 +91,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-black px-4">
-
+      
       <div className="w-full max-w-md bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-2xl border border-white/10">
 
         {/* TITLE */}
@@ -108,6 +116,7 @@ export default function Login() {
             placeholder="Email address"
             value={formData.email}
             onChange={handleChange}
+            autoComplete="email"
             className="w-full px-4 py-2 rounded-lg bg-white/20 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400"
           />
 
@@ -118,6 +127,7 @@ export default function Login() {
             placeholder="Password"
             value={formData.password}
             onChange={handleChange}
+            autoComplete="current-password"
             className="w-full px-4 py-2 rounded-lg bg-white/20 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400"
           />
 

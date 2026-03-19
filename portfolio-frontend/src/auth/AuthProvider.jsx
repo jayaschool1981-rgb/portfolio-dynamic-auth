@@ -10,29 +10,29 @@ export function AuthProvider({ children }) {
   // ✅ LOAD USER FROM STORAGE
   // ==========================
   useEffect(() => {
-  try {
-    const token = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
+    try {
+      const token = localStorage.getItem("token");
+      const storedUser = localStorage.getItem("user");
 
-    if (token && storedUser && storedUser !== "undefined") {
-      setUser(JSON.parse(storedUser));
+      if (token && storedUser && storedUser !== "undefined") {
+        setUser(JSON.parse(storedUser));
+      }
+    } catch (error) {
+      console.error("❌ Auth load error:", error);
+      localStorage.removeItem("user");
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Auth load error:", error);
-    localStorage.removeItem("user"); // cleanup bad data
-  } finally {
-    setLoading(false);
-  }
-}, []);
+  }, []);
 
   // ==========================
   // ✅ LOGIN FUNCTION
   // ==========================
   const login = ({ token, user }) => {
-  localStorage.setItem("token", token);
-  localStorage.setItem("user", JSON.stringify(user)); // ✅ FIX
-  setUser(user);
-};
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+    setUser(user);
+  };
 
   // ==========================
   // ✅ LOGOUT FUNCTION
@@ -40,7 +40,6 @@ export function AuthProvider({ children }) {
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-
     setUser(null);
   };
 
