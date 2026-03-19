@@ -113,14 +113,14 @@ app.post("/api/register", async (req, res) => {
 
     const { password: _, ...userData } = user._doc;
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "User registered successfully",
       user: userData,
     });
 
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Server error",
       error: error.message,
@@ -166,8 +166,7 @@ app.post("/api/login", async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    // ✅ VERY IMPORTANT (FIXED)
-    res.status(200).json({
+    const response = {
       success: true,
       message: "Login successful",
       token,
@@ -176,13 +175,16 @@ app.post("/api/login", async (req, res) => {
         name: user.name,
         email: user.email,
       },
-    });
-    console.log("RESPONSE:", res.data);
+    };
+
+    console.log("✅ RESPONSE SENT:", response);
+
+    return res.status(200).json(response);
 
   } catch (error) {
     console.error("❌ LOGIN ERROR:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Server error",
       error: error.message,
@@ -197,14 +199,14 @@ app.get("/api/profile", verifyToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
 
-    res.json({
+    return res.json({
       success: true,
       message: "Profile fetched successfully",
       user,
     });
 
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Server error",
       error: error.message,

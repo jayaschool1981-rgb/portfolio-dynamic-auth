@@ -1,40 +1,17 @@
-const { connect } = require("../lib/db");
-const User = require("../models/User");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-
-module.exports = async function (req, res) {
-  // ==========================
-  // METHOD CHECK
-  // ==========================
-  if (req.method !== "POST") {
-    return res.status(405).json({
-      success: false,
-      message: "Method not allowed",
-    });
-  }
-
-  const { email, password } = req.body || {};
-
-  // ==========================
-  // VALIDATION
-  // ==========================
-  if (!email || !password) {
-    return res.status(400).json({
-      success: false,
-      message: "Email and password are required",
-    });
-  }
-
+// ==========================
+// 🔑 LOGIN (FINAL WORKING)
+// ==========================
+app.post("/api/login", async (req, res) => {
   try {
-    // ==========================
-    // DB CONNECT
-    // ==========================
-    await connect(process.env.MONGODB_URI);
+    const { email, password } = req.body;
 
-    // ==========================
-    // FIND USER
-    // ==========================
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -44,9 +21,6 @@ module.exports = async function (req, res) {
       });
     }
 
-    // ==========================
-    // PASSWORD CHECK
-    // ==========================
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
@@ -56,21 +30,13 @@ module.exports = async function (req, res) {
       });
     }
 
-    // ==========================
-    // TOKEN GENERATION
-    // ==========================
     const token = jwt.sign(
-      {
-        id: user._id,
-        email: user.email,
-      },
+      { id: user._id, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    // ==========================
-    // RESPONSE (VERY IMPORTANT)
-    // ==========================
+    // ✅ FINAL RESPONSE OBJECT
     const response = {
       success: true,
       message: "Login successful",
@@ -82,7 +48,7 @@ module.exports = async function (req, res) {
       },
     };
 
-    console.log("✅ LOGIN RESPONSE:", response); // 🔥 DEBUG
+    console.log("✅ RESPONSE SENT:", response);
 
     return res.status(200).json(response);
 
@@ -95,4 +61,4 @@ module.exports = async function (req, res) {
       error: error.message,
     });
   }
-};
+});
