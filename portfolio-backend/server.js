@@ -1,124 +1,182 @@
+// ✅ 1. Load environment variables FIRST
+import dotenv from "dotenv";
+dotenv.config();
+
+// ✅ 2. Imports
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import User from "./models/User.js";
 
-dotenv.config();
-
+// ✅ 3. Initialize app
 const app = express();
+
+// ✅ 4. Middleware
 app.use(express.json());
+
 app.use(
   cors({
     origin: [
-      "http://localhost:5173", // ✅ Local dev
-      "https://portfolio-dynamic-auth.vercel.app" // deployed frontend
+      "http://localhost:5173",
+      "https://portfolio-dynamic-auth.vercel.app",
     ],
     methods: ["GET", "POST"],
     credentials: true,
   })
 );
 
-/* ===============================
-   🩺 HEALTH CHECK ROUTE
-================================= */
-app.get("/api/health", (req, res) => {
-  res.send("✅ Backend is live and connected to Render + MongoDB!");
-});
-
-/* ===============================
-   🧩 MONGO CONNECTION
-================================= */
+// ✅ 5. MongoDB Connection
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB connected successfully"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+  .catch((err) => {
+    console.error("❌ MongoDB connection error:", err.message);
+    process.exit(1);
+  });
 
-const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
+// ✅ 6. Root Route
+app.get("/", (req, res) => {
+  res.send("🚀 API is running...");
+});
 
-/* ===============================
-   🔐 REGISTER ROUTE
-================================= */
-app.post("/api/register", async (req, res) => {
-  const { username, password } = req.body;
+
+// ==========================
+// 🔐 AUTH MIDDLEWARE
+// ==========================
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({ message: "No token provided" });
+  }
+
   try {
-    console.log("📩 Register request:", username);
+    const token = authHeader.split(" ")[1]; // Bearer TOKEN
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const existingUser = await User.findOne({ username });
-    if (existingUser) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User already exists" });
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+};
+
+
+// ==========================
+// 📝 REGISTER ROUTE
+// ==========================
+app.post("/api/register", async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    // 🔍 Validation
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
+    // 🔍 Check if user exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
 
-    const newUser = new User({ username, passwordHash });
-    await newUser.save();
+    // 🔐 Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    res.json({ success: true, message: "User registered successfully" });
-  } catch (err) {
-    console.error("Register Error:", err);
-    res.status(500).json({ success: false, message: "Server error" });
+    // 💾 Save user
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+    });
+
+    // ❌ Remove password from response
+    const { password: _, ...userData } = user._doc;
+
+    res.status(201).json({
+      message: "User registered successfully",
+      user: userData,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
   }
 });
 
-/* ===============================
-   🔑 LOGIN ROUTE
-================================= */
+
+// ==========================
+// 🔑 LOGIN ROUTE
+// ==========================
 app.post("/api/login", async (req, res) => {
-  const { username, password } = req.body;
-
   try {
-    console.log("🔐 Login attempt:", username);
-    const user = await User.findOne({ username });
+    const { email, password } = req.body;
 
-    if (!user)
-      return res
-        .status(401)
-        .json({ success: false, message: "User not found" });
+    // 🔍 Validation
+    if (!email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
 
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch)
-      return res
-        .status(401)
-        .json({ success: false, message: "Invalid credentials" });
+    // 🔍 Find user
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
-    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: "1h" });
+    // 🔐 Compare password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
-    res.json({ success: true, token, username });
-  } catch (err) {
-    console.error("Login Error:", err);
-    res.status(500).json({ success: false, message: "Server error" });
+    // 🎟 Generate JWT
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      message: "Login successful",
+      token,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
   }
 });
 
-/* ===============================
-   🧠 PROTECTED ROUTE (for testing)
-================================= */
-app.get("/api/user", verifyToken, (req, res) => {
-  res.json({ success: true, user: req.user });
+
+// ==========================
+// 🔒 PROTECTED ROUTE
+// ==========================
+app.get("/api/profile", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+
+    res.json({
+      message: "Profile fetched successfully",
+      user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 });
 
-function verifyToken(req, res, next) {
-  const header = req.headers.authorization;
-  if (!header)
-    return res.status(403).json({ message: "No token provided" });
 
-  try {
-    const token = header.split(" ")[1];
-    req.user = jwt.verify(token, JWT_SECRET);
-    next();
-  } catch (err) {
-    res.status(403).json({ message: "Invalid or expired token" });
-  }
-}
-
-// ✅ Start Server
+// ==========================
+// 🚀 START SERVER
+// ==========================
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () =>
-  console.log(`🚀 Server running at http://localhost:${PORT}`)
-);
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
+});
