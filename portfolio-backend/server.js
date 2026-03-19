@@ -177,6 +177,7 @@ app.post("/api/login", async (req, res) => {
         email: user.email,
       },
     });
+    console.log("RESPONSE:", res.data);
 
   } catch (error) {
     console.error("❌ LOGIN ERROR:", error);
