@@ -3,91 +3,138 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../auth/AuthProvider";
 
-// ✅ Automatically use correct backend (local or deployed)
+// ✅ API base URL (local + deployed)
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE || "https://portfolio-dynamic-auth.onrender.com/api";
+  import.meta.env.VITE_API_BASE || "http://localhost:3000/api";
 
 export default function Login() {
-  const [formData, setFormData] = useState({ username: "", password: "" });
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
+  const navigate = useNavigate();
   const { login } = useContext(AuthContext);
 
+  // ==========================
+  // HANDLE INPUT CHANGE
+  // ==========================
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
   };
 
+  // ==========================
+  // HANDLE SUBMIT
+  // ==========================
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.email || !formData.password) {
+      return setMessage("⚠️ Please fill all fields");
+    }
+
     setMessage("");
     setLoading(true);
 
     try {
-      // ✅ POST to correct backend route
-      const res = await axios.post(`${API_BASE_URL}/login`, formData);
+      const res = await axios.post(
+        `${API_BASE_URL}/login`,
+        formData,
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
 
-      if (res.data.success) {
-        setMessage("✅ Login successful! Redirecting...");
+      const { token, user } = res.data;
 
-        // ✅ Save user to global context
-        login({
-          username: res.data.username,
-          token: res.data.token,
-        });
-
-        // Navigate after short delay
-        setTimeout(() => navigate("/dashboard"), 1000);
-      } else {
-        setMessage(res.data.message || "Invalid credentials");
+      // ✅ SAFETY CHECK (VERY IMPORTANT)
+      if (!user) {
+        throw new Error("User data missing from server");
       }
+
+      login({
+        username: user.name || "User", // fallback safety
+        token: token,
+      });
+
+      setMessage("✅ Login successful!");
+
+      navigate("/dashboard");
+
     } catch (err) {
       console.error("❌ Login error:", err);
-      setMessage(err.response?.data?.message || "Server error");
+
+      const errorMsg =
+        err.response?.data?.message ||
+        err.message ||
+        "Something went wrong";
+
+      setMessage(`❌ ${errorMsg}`);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-purple-900">
-      <div className="bg-white/10 backdrop-blur-md p-10 rounded-2xl shadow-2xl w-96">
-        <h2 className="text-3xl font-bold text-white text-center mb-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-black px-4">
+
+      <div className="w-full max-w-md bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-2xl border border-white/10">
+
+        {/* TITLE */}
+        <h2 className="text-3xl font-bold text-white text-center mb-6">
           Welcome Back 👋
         </h2>
 
+        {/* MESSAGE */}
         {message && (
-          <p className="text-center text-sm text-yellow-300 mb-4">{message}</p>
+          <p className="text-center text-sm mb-4 text-yellow-300">
+            {message}
+          </p>
         )}
 
+        {/* FORM */}
         <form onSubmit={handleSubmit} className="space-y-5">
+
+          {/* EMAIL */}
           <input
-            type="text"
-            name="username"
-            placeholder="Username"
-            value={formData.username}
+            type="email"
+            name="email"
+            placeholder="Email address"
+            value={formData.email}
             onChange={handleChange}
-            className="w-full px-4 py-2 rounded-lg bg-white/20 text-white placeholder-gray-300 focus:outline-none"
-            required
+            className="w-full px-4 py-2 rounded-lg bg-white/20 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400"
           />
+
+          {/* PASSWORD */}
           <input
             type="password"
             name="password"
             placeholder="Password"
             value={formData.password}
             onChange={handleChange}
-            className="w-full px-4 py-2 rounded-lg bg-white/20 text-white placeholder-gray-300 focus:outline-none"
-            required
+            className="w-full px-4 py-2 rounded-lg bg-white/20 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400"
           />
+
+          {/* BUTTON */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition-all disabled:opacity-50"
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition-all duration-200 disabled:opacity-50"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
+
+        {/* FOOTER */}
+        <p className="text-center text-xs text-gray-400 mt-6">
+          Secure login powered by JWT 🔐
+        </p>
       </div>
     </div>
   );

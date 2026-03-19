@@ -6,28 +6,41 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ On mount, check if token exists
+  // ==========================
+  // ✅ LOAD USER FROM STORAGE
+  // ==========================
   useEffect(() => {
+  try {
     const token = localStorage.getItem("token");
-    const username = localStorage.getItem("username");
+    const storedUser = localStorage.getItem("user");
 
-    if (token && username) {
-      setUser({ username });
+    if (token && storedUser && storedUser !== "undefined") {
+      setUser(JSON.parse(storedUser));
     }
+  } catch (error) {
+    console.error("Auth load error:", error);
+    localStorage.removeItem("user"); // cleanup bad data
+  } finally {
     setLoading(false);
-  }, []);
+  }
+}, []);
 
-  // ✅ Login — store JWT in localStorage
-  const login = ({ username, token }) => {
-    localStorage.setItem("token", token);
-    localStorage.setItem("username", username);
-    setUser({ username });
-  };
+  // ==========================
+  // ✅ LOGIN FUNCTION
+  // ==========================
+  const login = ({ token, user }) => {
+  localStorage.setItem("token", token);
+  localStorage.setItem("user", JSON.stringify(user)); // ✅ FIX
+  setUser(user);
+};
 
-  // ✅ Logout — clear everything
+  // ==========================
+  // ✅ LOGOUT FUNCTION
+  // ==========================
   const logout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("username");
+    localStorage.removeItem("user");
+
     setUser(null);
   };
 
